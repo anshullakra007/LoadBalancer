@@ -10,7 +10,7 @@ public class LoadBalancer {
     // 🔄 Round Robin Counter (Thread Safe)
     private static final AtomicInteger counter = new AtomicInteger(0);
     
-    // 📋 List of our Backend Servers
+    // 📋 List of our Backend Servers (Virtual for Demo)
     private static final List<String> BACKEND_SERVERS = List.of(
         "http://localhost:8081",
         "http://localhost:8082",
@@ -18,10 +18,17 @@ public class LoadBalancer {
     );
 
     public static void main(String[] args) throws IOException {
-        System.out.println("⚖️ Load Balancer starting on Port 8000...");
+        // ☁️ CLOUD PORT LOGIC
+        int port = 8000;
+        String envPort = System.getenv("PORT");
+        if (envPort != null) {
+            port = Integer.parseInt(envPort);
+        }
+
+        System.out.println("⚖️ Load Balancer starting on Port " + port + "...");
         
-        // Listen on Port 8000 (The Entry Point)
-        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+        // Listen on the dynamic Cloud Port
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", new Router());
         server.setExecutor(null);
         server.start();
@@ -36,32 +43,37 @@ public class LoadBalancer {
             
             System.out.println("🔀 Forwarding request to: " + backendUrl);
 
-            // 2. Forward request to the selected Backend
-            String response = forwardRequest(backendUrl);
+            // 2. Forward request (Simulated for Demo)
+            String responseBody = forwardRequest(backendUrl);
 
-            // 3. Send response back to the User
-            exchange.sendResponseHeaders(200, response.length());
+            // 3. Send HTML response back to the User
+            exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
+            exchange.sendResponseHeaders(200, responseBody.getBytes().length);
             OutputStream os = exchange.getResponseBody();
-            os.write(response.getBytes());
+            os.write(responseBody.getBytes());
             os.close();
         }
 
         private String forwardRequest(String urlString) {
+            // In a real scenario, we would connect. 
+            // For this Portfolio Demo, we show which server WAS chosen.
             try {
+                // Try to connect (will fail on Render since backends don't exist)
                 URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setConnectTimeout(100); // Fail fast
                 conn.setRequestMethod("GET");
-                
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                String inputLine;
-                StringBuilder content = new StringBuilder();
-                while ((inputLine = in.readLine()) != null) {
-                    content.append(inputLine);
-                }
-                in.close();
-                return content.toString();
+                conn.getResponseCode(); 
+                return "Connected to " + urlString; 
             } catch (Exception e) {
-                return "Error connecting to backend";
+                // 🎨 DEMO RESPONSE: Prove the Algorithm works
+                return "<html><body style='font-family: monospace; background: #000; color: #0f0; padding: 20px;'>"
+                     + "<h1>⚖️ Load Balancer Demo</h1>"
+                     + "<div style='border: 1px solid #333; padding: 20px; border-radius: 8px;'>"
+                     + "<p><strong>Algorithm:</strong> Round Robin</p>"
+                     + "<p><strong>Selected Backend:</strong> <span style='color: yellow'>" + urlString + "</span></p>"
+                     + "<p><i>(Note: Connection failed because backend is offline in this cloud container. <br>Refesh the page to see the backend URL change!)</i></p>"
+                     + "</div></body></html>";
             }
         }
     }
