@@ -37,8 +37,14 @@ public class LoadBalancer {
     static class Router implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            // Ignore favicon requests from browsers to avoid skipping servers in Round Robin
+            if (exchange.getRequestURI().getPath().equals("/favicon.ico")) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
             // 1. ROUND ROBIN LOGIC: Pick the next server
-            int index = counter.getAndIncrement() % BACKEND_SERVERS.size();
+            int index = Math.abs(counter.getAndIncrement() % BACKEND_SERVERS.size());
             String backendUrl = BACKEND_SERVERS.get(index);
             
             System.out.println("🔀 Forwarding request to: " + backendUrl);
@@ -47,10 +53,11 @@ public class LoadBalancer {
             String responseBody = forwardRequest(backendUrl);
 
             // 3. Send HTML response back to the User
+            byte[] responseBytes = responseBody.getBytes("UTF-8");
             exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8");
-            exchange.sendResponseHeaders(200, responseBody.getBytes().length);
+            exchange.sendResponseHeaders(200, responseBytes.length);
             OutputStream os = exchange.getResponseBody();
-            os.write(responseBody.getBytes());
+            os.write(responseBytes);
             os.close();
         }
 
