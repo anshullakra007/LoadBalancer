@@ -17,6 +17,21 @@ A custom HTTP Load Balancer built from scratch in Java. It sits in front of mult
    * Request 4 → Server 1... (Repeats)
 
 ## 📸 Usage
-1. **Start the Backend Servers:**
-   ```bash
-   javac BackendServers.java && java BackendServers
+### 1. Run Locally
+To compile and run both the Backend Servers and the Load Balancer simultaneously:
+```bash
+javac BackendServers.java LoadBalancer.java
+java BackendServers & java LoadBalancer
+```
+Then, open your browser and navigate to `http://localhost:8000/`.
+
+### 2. Run with Docker
+This project includes a `Dockerfile` that packages both the backend servers and the load balancer into a single lightweight container.
+
+```bash
+docker build -t java-load-balancer .
+docker run -p 8000:8000 java-load-balancer
+```
+
+### 3. Cloud Deployment (Render)
+This project is configured to be easily deployable on platforms like Render. The `LoadBalancer` automatically detects the `$PORT` environment variable provided by the cloud host.
