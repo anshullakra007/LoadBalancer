@@ -55,26 +55,47 @@ public class LoadBalancer {
         }
 
         private String forwardRequest(String urlString) {
-            // In a real scenario, we would connect. 
-            // For this Portfolio Demo, we show which server WAS chosen.
+            String statusHtml;
+            String messageHtml;
+            
             try {
-                // Try to connect (will fail on Render since backends don't exist)
                 URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setConnectTimeout(100); // Fail fast
+                conn.setConnectTimeout(2000);
+                conn.setReadTimeout(2000);
                 conn.setRequestMethod("GET");
-                conn.getResponseCode(); 
-                return "Connected to " + urlString; 
+                
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    String inputLine;
+                    StringBuilder response = new StringBuilder();
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+                    in.close();
+                    
+                    statusHtml = "<span style='color: #0f0'>✅ ONLINE</span>";
+                    messageHtml = "<p><strong>Backend Response:</strong> <span style='color: cyan'>" + response.toString() + "</span></p>";
+                } else {
+                    statusHtml = "<span style='color: red'>❌ HTTP " + responseCode + "</span>";
+                    messageHtml = "<p><strong>Error:</strong> <span style='color: red'>Unexpected response code from backend</span></p>";
+                }
             } catch (Exception e) {
-                // 🎨 DEMO RESPONSE: Prove the Algorithm works
-                return "<html><body style='font-family: monospace; background: #000; color: #0f0; padding: 20px;'>"
-                     + "<h1>⚖️ Load Balancer Demo</h1>"
-                     + "<div style='border: 1px solid #333; padding: 20px; border-radius: 8px;'>"
-                     + "<p><strong>Algorithm:</strong> Round Robin</p>"
-                     + "<p><strong>Selected Backend:</strong> <span style='color: yellow'>" + urlString + "</span></p>"
-                     + "<p><i>(Note: Connection failed because backend is offline in this cloud container. <br>Refesh the page to see the backend URL change!)</i></p>"
-                     + "</div></body></html>";
+                statusHtml = "<span style='color: red'>❌ OFFLINE</span>";
+                messageHtml = "<p><strong>Error:</strong> <span style='color: red'>Connection failed: " + e.getMessage() + "</span></p>"
+                            + "<p><i>(Note: Connection failed because backend is offline. Refresh the page to see the backend URL change!)</i></p>";
             }
+
+            return "<html><body style='font-family: monospace; background: #000; color: #0f0; padding: 20px;'>"
+                 + "<h1>⚖️ Load Balancer Demo</h1>"
+                 + "<div style='border: 1px solid #333; padding: 20px; border-radius: 8px;'>"
+                 + "<p><strong>Algorithm:</strong> Round Robin</p>"
+                 + "<p><strong>Selected Backend:</strong> <span style='color: yellow'>" + urlString + "</span></p>"
+                 + "<p><strong>Status:</strong> " + statusHtml + "</p>"
+                 + messageHtml
+                 + "<p><i>(Refresh the page to see the load balancer select the next server!)</i></p>"
+                 + "</div></body></html>";
         }
     }
 }

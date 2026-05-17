@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 # Compile
-RUN javac LoadBalancer.java
+RUN javac BackendServers.java LoadBalancer.java
 
 # Run
-CMD ["java", "LoadBalancer"]
+CMD java BackendServers & java LoadBalancer
